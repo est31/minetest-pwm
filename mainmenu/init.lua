@@ -35,7 +35,7 @@ else
 	--register some dummies to not break stuff
 	pwmgr = {}
 	function pwmgr.entered_handle(user, selected_name, pwd, addr, port)
-		return user, pwd, true
+		return user, pwd, true, ""
 	end
 end
 dofile(basepath .. DIR_DELIM .. "common" .. DIR_DELIM .. "async_event.lua")

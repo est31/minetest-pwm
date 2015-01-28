@@ -29,28 +29,35 @@ end
 
 local function read_file()
 	local password_list = {}
+	local errmsg = nil
 	local file = io.open(pwfilename, "r")
 	if file then
 		password_list = minetest.deserialize(file:read("*all"))
 		file:close()
 		if password_list == nil then
-			print("There was an error in parsing the password file. Have you broken it?")
+			errmsg = "There was an error in parsing the password file. Have you broken it?"
+			print(errmsg)
 		end
 	else
-		print("The password file wasn't at the position on "..pwfilename.."\nor some other error occured while reading the file.")
-		return nil
+		errmsg = "The password file wasn't at the position on "..pwfilename..",\n"..
+			"or some other error occured while reading the file. "..
+			"Note: '..' means directory up, so the file should not be placed into the mods directory!"
+		print(errmsg)
+		return nil, errmsg
 	end
-	return password_list
+	return password_list, errmsg
 end
 
 --determine the id the user wanted.
 local function check_uname(user, selected_name, address, port, password_list)
 	
 	local id = nil
+	local errmsg = ""
 	local check_addr = true
 	if not password_list.lu[user] then
-		print("no entry in table for user '"..user.."'.")
-		return  {id = id}
+		errmsg = "no entry in table for user '"..user.."'."
+		print(errmsg)
+		return  {id = id, errmsg = errmsg}
 	end
 	if check_addr then
 		local addr_entry = password_list.lu[user].addr_lu[address]
@@ -61,18 +68,21 @@ local function check_uname(user, selected_name, address, port, password_list)
 	if selected_name and (id == nil) then
 		id = password_list.lu[user].select_srv_lu[selected_name]
 	end
-	return {id = id}
+	return {id = id, errmsg = errmsg}
 end
 
 function pwmgr.entered_handle(user, selected_name, pwd, addr, port)
 	local retusr = user
 	local retpwd = pwd
 	local success = false
+	local errmsg = ""
 	if pwd == nil or pwd == "" then
 		print("submitted empty password, checking passwordfile for a password...")
-		local password_list = read_file()
+		local read_emsg = nil
+		local password_list, read_emsg = read_file()
 		if password_list == nil then
-			return retusr, retpwd, false
+			errmsg = read_emsg
+			return retusr, retpwd, false, errmsg
 		end
 		local re = check_uname(user, selected_name, addr, port, password_list)
 		if re.id then
@@ -81,9 +91,12 @@ function pwmgr.entered_handle(user, selected_name, pwd, addr, port)
 				retpwd = password_list.passwords[re.id]
 				success = true
 			else
-				print("ID ".. re.id .. " has no corresponding password, this is bad.")
+				errmsg = errmsg .. "ID ".. re.id .. " has no corresponding password, this is bad."
+				print(errmsg)
 			end
+		else
+			errmsg = errmsg .. re.errmsg
 		end
 	end
-	return retusr, retpwd, success
+	return retusr, retpwd, success, errmsg
 end

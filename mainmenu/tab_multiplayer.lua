@@ -105,7 +105,8 @@ local function main_button_handler(tabview, fields, name, tabdata)
 					gamedata.password		= fields["te_pwd"]
 				end
 				local do_connect = true
-				gamedata.playername, gamedata.password, do_connect = pwmgr.entered_handle(gamedata.playername, menudata.favorites[event.row].name, gamedata.password, gamedata.address, gamedata.port)
+				local pwmgr_error = nil
+				gamedata.playername, gamedata.password, do_connect, pwmgr_error = pwmgr.entered_handle(gamedata.playername, menudata.favorites[event.row].name, gamedata.password, gamedata.address, gamedata.port)
 				gamedata.selected_world = 0
 
 				if menudata.favorites ~= nil then
@@ -114,10 +115,16 @@ local function main_button_handler(tabview, fields, name, tabdata)
 				end
 
 				if gamedata.address ~= nil and
-					gamedata.port ~= nil and do_connect then
-					core.setting_set("address",gamedata.address)
-					core.setting_set("remote_port",gamedata.port)
-					core.start()
+					gamedata.port ~= nil then
+					if do_connect then
+						core.setting_set("address",gamedata.address)
+						core.setting_set("remote_port",gamedata.port)
+						core.start()
+					else
+						if pwmgr_error then
+							gamedata.errormessage = "Password manager: " .. pwmgr_error
+						end
+					end
 				end
 			end
 			return true
@@ -224,7 +231,8 @@ local function main_button_handler(tabview, fields, name, tabdata)
 		gamedata.selected_world = 0
 
 		local do_connect = true
-		gamedata.playername, gamedata.password, do_connect = pwmgr.entered_handle(gamedata.playername, gamedata.servername, gamedata.password, gamedata.address, gamedata.port)
+		local pwmgr_error = nil
+		gamedata.playername, gamedata.password, do_connect, pwmgr_error = pwmgr.entered_handle(gamedata.playername, gamedata.servername, gamedata.password, gamedata.address, gamedata.port)
 
 		if do_connect then
 			core.setting_set("address",    fields["te_address"])
@@ -232,7 +240,9 @@ local function main_button_handler(tabview, fields, name, tabdata)
 
 			core.start()
 		else
-
+			if pwmgr_error then
+				gamedata.errormessage = "Password manager: " .. pwmgr_error
+			end
 		end
 		return true
 	end
