@@ -107,7 +107,7 @@ function pwmgr.entered_handle(user, selected_name, pwd, addr, port)
 		end
 		local re = check_uname(user, selected_name, addr, port, password_list)
 		if re.pw then
-			print("Found matching entry in password list"..(re.id and " (ID: "..re.id or "")..".")
+			print("Found matching entry in password list"..(re.id and " (ID: "..re.id..")" or "")..".")
 			retpwd = re.pw
 			success = true
 		else
