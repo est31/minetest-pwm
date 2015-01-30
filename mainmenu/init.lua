@@ -27,15 +27,20 @@ local basepath = core.get_builtin_path()
 defaulttexturedir = core.get_texturepath_share() .. DIR_DELIM .. "base" ..
 					DIR_DELIM .. "pack" .. DIR_DELIM
 
-local pwm_func =
-loadfile(basepath .. DIR_DELIM .. "pwmanager" .. DIR_DELIM .. "init.lua")
-if pwm_func then
-	pwm_func()
+if core.setting_get("pwm_debug") then
+	--display errors
+	dofile(basepath .. DIR_DELIM .. "pwmanager" .. DIR_DELIM .. "init.lua")
 else
-	--register some dummies to not break stuff
-	pwmgr = {}
-	function pwmgr.entered_handle(user, selected_name, pwd, addr, port)
-		return user, pwd, true, ""
+	local pwm_func =
+		loadfile(basepath .. DIR_DELIM .. "pwmanager" .. DIR_DELIM .. "init.lua")
+	if pwm_func then
+		pwm_func()
+	else
+		--register some dummies to not break stuff
+		pwmgr = {}
+		function pwmgr.entered_handle(user, selected_name, pwd, addr, port)
+			return user, pwd, true, ""
+		end
 	end
 end
 dofile(basepath .. DIR_DELIM .. "common" .. DIR_DELIM .. "async_event.lua")

@@ -16,7 +16,7 @@
 --with this program; if not, write to the Free Software Foundation, Inc.,
 --51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 --------------------------------------------------------------------------------
--- Version 0.2
+-- Version 0.3
 
 pwmgr = {}
 
@@ -37,6 +37,10 @@ local function read_file()
 		if password_list == nil then
 			errmsg = "There was an error in parsing the password file. Have you broken it?"
 			print(errmsg)
+		elseif password_list["password_list"] == nil and password_list.lu then
+			errmsg = "The password file is in the old 'lookup' format. That isn't supported anymore."
+			print(errmsg)
+			password_list = nil
 		end
 	else
 		errmsg = "The password file wasn't at the position on "..pwfilename..",\n"..
@@ -50,25 +54,42 @@ end
 
 --determine the id the user wanted.
 local function check_uname(user, selected_name, address, port, password_list)
-	
-	local id = nil
 	local errmsg = ""
-	local check_addr = true
-	if not password_list.lu[user] then
-		errmsg = "no entry in table for user '"..user.."'."
-		print(errmsg)
-		return  {id = id, errmsg = errmsg}
-	end
-	if check_addr then
-		local addr_entry = password_list.lu[user].addr_lu[address]
-		if addr_entry then
-			id = addr_entry[port]
+	local pw = nil
+	local comment = nil
+	-- first search for matching addresses, then for matching server names.
+	for ind, content in pairs(password_list["password_list"]) do
+		if content.user ~= nil and content.user ~= "" then
+			if content.user == user then
+				if content.address and content.port then
+					if content.address == address and (content.port-port) == 0 then
+						pw = content.password
+						comment = content.comment
+						return  {pw = pw, comment = comment, errmsg = errmsg, id = content.id}
+					end
+				elseif content.address or content.port then
+					errmsg = "Invalid password list: found entry with incomplete address information."
+					print(errmsg)
+					return  {pw = pw, comment = comment, errmsg = errmsg}
+				end
+			end
+		else
+			errmsg = "Invalid password list: found entry with missing username."
+			print(errmsg)
+			return  {pw = pw, comment = comment, errmsg = errmsg}
 		end
 	end
-	if selected_name and (id == nil) then
-		id = password_list.lu[user].select_srv_lu[selected_name]
+	for ind, content in pairs(password_list["password_list"]) do
+		if content.user == user then
+			if content.name == selected_name then
+				pw = content.password
+				comment = content.comment
+				return  {pw = pw, comment = comment, errmsg = errmsg, id = content.id}
+			end
+		end
 	end
-	return {id = id, errmsg = errmsg}
+	errmsg = "Didn't find matching entry in password file."
+	return  {pw = pw, comment = comment, errmsg = errmsg}
 end
 
 function pwmgr.entered_handle(user, selected_name, pwd, addr, port)
@@ -85,18 +106,16 @@ function pwmgr.entered_handle(user, selected_name, pwd, addr, port)
 			return retusr, retpwd, false, errmsg
 		end
 		local re = check_uname(user, selected_name, addr, port, password_list)
-		if re.id then
-			if password_list.passwords[re.id] then
-				print("Using the stored password with the ID ".. re.id .. ".")
-				retpwd = password_list.passwords[re.id]
-				success = true
-			else
-				errmsg = errmsg .. "ID ".. re.id .. " has no corresponding password, this is bad."
-				print(errmsg)
-			end
+		if re.pw then
+			print("Found matching entry in password list"..(re.id and " (ID: "..re.id or "")..".")
+			retpwd = re.pw
+			success = true
 		else
 			errmsg = errmsg .. re.errmsg
 		end
+	else
+		-- the user has already entered a password.
+		success = true
 	end
 	return retusr, retpwd, success, errmsg
 end
