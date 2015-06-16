@@ -68,7 +68,12 @@ local function check_uname(user, selected_name, address, port, password_list)
 						return  {pw = pw, comment = comment, errmsg = errmsg, id = content.id}
 					end
 				elseif content.address or content.port then
-					errmsg = "Invalid password list: found entry with incomplete address information."
+					errmsg = "Invalid password list: found entry with incomplete address information : "
+						.. (content.address and "" or
+							"Address is nil, but port specified")
+						.. (content.port and "" or
+							"Port is nil, but address specified")
+						.. (content.id and " (ID: ".. content.id..")" or "").. "."
 					print(errmsg)
 					return  {pw = pw, comment = comment, errmsg = errmsg}
 				end
